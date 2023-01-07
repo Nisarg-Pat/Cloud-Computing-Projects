@@ -52,6 +52,16 @@ public:
 	void init() {
 		memset(&addr, 0, sizeof(addr));
 	}
+	int getid() {
+	    int id = 0;
+	    memcpy(&id, &addr[0], sizeof(int));
+	    return id;
+	}
+	short getPort() {
+	    short port;
+	    memcpy(&port, &addr[4], sizeof(short));
+	    return port;
+	}
 };
 
 /**

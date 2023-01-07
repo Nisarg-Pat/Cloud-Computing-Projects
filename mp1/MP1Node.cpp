@@ -221,15 +221,39 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 */
 	 MessageHdr* msg = (MessageHdr *) data;
 	 if(msg->msgType == JOINREQ) {
-	    Address addr;
-	    long value;
-	    memcpy(&addr.addr, (char *)(msg+1), sizeof(addr.addr));
-	    memcpy(&value, (char *)(msg+1) + 1 + sizeof(addr.addr), sizeof(long));
-	    //cout<<addr.getAddress()<<" "<<value<<"\n";
+        Address addr;
+        long value;
+        memcpy(&addr.addr, (char *)(msg+1), sizeof(addr.addr));
+        memcpy(&value, (char *)(msg+1) + 1 + sizeof(addr.addr), sizeof(long));
+        //cout<<addr.getAddress()<<" "<<value<<"\n";
         #ifdef DEBUGLOG
               log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", addr.getAddress().c_str(), value);
         #endif
-	 }
+        //memberNode->memberList.push_back()
+
+        MessageHdr* resp;
+        char responseString[20] = "Successfull";
+        size_t msgsize = sizeof(MessageHdr) + sizeof(responseString);
+        resp = (MessageHdr *) malloc(msgsize * sizeof(char));
+
+        // create JOINREQ message: format of data is {struct Address myaddr}
+        msg->msgType = JOINREP;
+        memcpy((char *)(msg+1), responseString, sizeof(responseString));
+
+        // send JOINREP message to introducer member
+        emulNet->ENsend(&memberNode->addr, &addr, (char *)msg, msgsize);
+
+        free(msg);
+        free(resp);
+    }
+	 if(msg->msgType == JOINREP) {
+        char resp[20];
+        memcpy(resp, (char *)(msg+1), sizeof(resp));
+        //cout<<addr.getAddress()<<" "<<value<<"\n";
+         #ifdef DEBUGLOG
+               log->LOG(&memberNode->addr, "Received JOINREP. Response: %s", resp);
+         #endif
+     }
 }
 
 /**
