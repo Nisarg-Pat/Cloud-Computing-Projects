@@ -210,6 +210,18 @@ void MP1Node::checkMessages() {
     return;
 }
 
+int getid(Address addr) {
+    int id = 0;
+    memcpy(&id, &addr.addr[0], sizeof(int));
+    return id;
+}
+
+short getport(Address addr) {
+    short port;
+    memcpy(&port, &addr.addr[4], sizeof(short));
+    return port;
+}
+
 /**
  * FUNCTION NAME: recvCallBack
  *
@@ -222,23 +234,24 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 MessageHdr* msg = (MessageHdr *) data;
 	 if(msg->msgType == JOINREQ) {
         Address addr;
-        long value;
+        long heartbeat;
         memcpy(&addr.addr, (char *)(msg+1), sizeof(addr.addr));
-        memcpy(&value, (char *)(msg+1) + 1 + sizeof(addr.addr), sizeof(long));
+        memcpy(&heartbeat, (char *)(msg+1) + 1 + sizeof(addr.addr), sizeof(long));
         //cout<<addr.getAddress()<<" "<<value<<"\n";
+        MemberListEntry mm(getid(addr), getport(addr), 0, 0);
+        memberNode->memberList.push_back(mm);
         #ifdef DEBUGLOG
-              log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", addr.getAddress().c_str(), value);
+              log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", addr.getAddress().c_str(), heartbeat);
+              log->LOG(&memberNode->addr, "%s", printMemberList().c_str());
         #endif
-        //memberNode->memberList.push_back()
-
         MessageHdr* resp;
-        char responseString[20] = "Successfull";
-        size_t msgsize = sizeof(MessageHdr) + sizeof(responseString);
+        size_t msgsize = sizeof(MessageHdr) + sizeof(size_t);
         resp = (MessageHdr *) malloc(msgsize * sizeof(char));
 
         // create JOINREQ message: format of data is {struct Address myaddr}
         msg->msgType = JOINREP;
-        memcpy((char *)(msg+1), responseString, sizeof(responseString));
+        size_t sz = memberNode->memberList.size();
+        memcpy((char *)(msg+1), &sz, sizeof(size_t));
 
         // send JOINREP message to introducer member
         emulNet->ENsend(&memberNode->addr, &addr, (char *)msg, msgsize);
@@ -247,13 +260,23 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
         free(resp);
     }
 	 if(msg->msgType == JOINREP) {
-        char resp[20];
-        memcpy(resp, (char *)(msg+1), sizeof(resp));
+        size_t sz;
+        memcpy(&sz, (char *)(msg+1), sizeof(size_t));
         //cout<<addr.getAddress()<<" "<<value<<"\n";
          #ifdef DEBUGLOG
-               log->LOG(&memberNode->addr, "Received JOINREP. Response: %s", resp);
+               log->LOG(&memberNode->addr, "Received JOINREP. Response: %d %d", sz, size);
+//               log->LOG(&memberNode->addr, "%s", printMemberList().c_str());
          #endif
      }
+}
+
+string MP1Node::printMemberList() {
+    string out = "";
+    int i;
+    for(i=0;i<memberNode->memberList.size();i++) {
+        out = out + to_string(memberNode->memberList[i].getid()) + ":"+to_string(memberNode->memberList[i].getport()) + "\n";
+    }
+    return out;
 }
 
 /**
