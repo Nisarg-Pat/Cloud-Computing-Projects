@@ -69,6 +69,7 @@ public:
 	int finishUpThisNode();
 	void nodeLoop();
 	void checkMessages();
+	void sendMessage(Address* receiveAddr, MsgTypes msgType);
 	bool recvCallBack(void *env, char *data, int size);
 	void nodeLoopOps();
 	int isNullAddress(Address *addr);
