@@ -231,20 +231,23 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 */
 	 MessageHdr* msg = (MessageHdr *) data;
 	 if(msg->msgType == JOINREQ) {
-	    Address sendAddress;
+	    Address* sendAddress = new Address();
 	    long heartbeat;
 
-	    memcpy(&sendAddress, (char *)(msg+1), sizeof(sendAddress));
-	    memcpy(&heartbeat, (char *)(msg+1) + sizeof(sendAddress), sizeof(long));
+	    memcpy(sendAddress, (char *)(msg+1), sizeof(Address));
+	    memcpy(&heartbeat, (char *)(msg+1) + sizeof(Address), sizeof(long));
 	    //cout<<addr.getAddress()<<" "<<value<<"\n";
+
         #ifdef DEBUGLOG
-              log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", sendAddress.getAddress().c_str(), heartbeat);
+            string ss = sendAddress->getAddress();
+            log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", ss.c_str(), heartbeat);
         #endif
         addAddressToMemberList(sendAddress);
+        free(sendAddress);
 	 }
 }
 
-void MP1Node::addAddressToMemberList(Address address) {
+void MP1Node::addAddressToMemberList(Address* address) {
     int id = getIdFromAddress(address);
     short port = getPortFromAddress(address);
     #ifdef DEBUGLOG
@@ -312,14 +315,14 @@ void MP1Node::printAddress(Address *addr)
                                                        addr->addr[3], *(short*)&addr->addr[4]) ;    
 }
 
-int MP1Node::getIdFromAddress(Address address) {
+int MP1Node::getIdFromAddress(Address *address) {
     int id = 0;
-    memcpy(&id, &address.addr[0], sizeof(int));
+    memcpy(&id, &address->addr[0], sizeof(int));
     return id;
 }
 
-short MP1Node::getPortFromAddress(Address address) {
+short MP1Node::getPortFromAddress(Address *address) {
     short port;
-    memcpy(&port, &address.addr[4], sizeof(short));
+    memcpy(&port, &address->addr[4], sizeof(short));
     return port;
 }

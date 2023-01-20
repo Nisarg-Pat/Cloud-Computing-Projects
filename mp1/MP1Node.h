@@ -71,14 +71,14 @@ public:
 	void checkMessages();
 	void sendMessage(Address* receiveAddr, MsgTypes msgType);
 	bool recvCallBack(void *env, char *data, int size);
-	void addAddressToMemberList(Address address);
+	void addAddressToMemberList(Address *address);
 	void nodeLoopOps();
 	int isNullAddress(Address *addr);
 	Address getJoinAddress();
 	void initMemberListTable(Member *memberNode);
 	void printAddress(Address *addr);
-	int getIdFromAddress(Address address);
-	short getPortFromAddress(Address address);
+	int getIdFromAddress(Address *address);
+	short getPortFromAddress(Address *address);
 	virtual ~MP1Node();
 };
 
