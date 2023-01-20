@@ -240,7 +240,16 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
         #ifdef DEBUGLOG
               log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", sendAddress.getAddress().c_str(), heartbeat);
         #endif
+        addAddressToMemberList(sendAddress);
 	 }
+}
+
+void MP1Node::addAddressToMemberList(Address address) {
+    int id = getIdFromAddress(address);
+    short port = getPortFromAddress(address);
+    #ifdef DEBUGLOG
+          log->LOG(&memberNode->addr, "id and port of Address: %d, %d", id, port);
+    #endif
 }
 
 /**
@@ -301,4 +310,16 @@ void MP1Node::printAddress(Address *addr)
 {
     printf("%d.%d.%d.%d:%d \n",  addr->addr[0],addr->addr[1],addr->addr[2],
                                                        addr->addr[3], *(short*)&addr->addr[4]) ;    
+}
+
+int MP1Node::getIdFromAddress(Address address) {
+    int id = 0;
+    memcpy(&id, &address.addr[0], sizeof(int));
+    return id;
+}
+
+short MP1Node::getPortFromAddress(Address address) {
+    short port;
+    memcpy(&port, &address.addr[4], sizeof(short));
+    return port;
 }
