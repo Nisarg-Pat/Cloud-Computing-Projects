@@ -206,7 +206,7 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         msg->msgType = JOINREQ;
         memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
         memcpy((char *)(msg+1) + sizeof(memberNode->addr), &memberNode->heartbeat, sizeof(long));
-        cout<<memberNode->addr.getAddress()<<" "<<memberNode->heartbeat<<"\n";
+        //cout<<memberNode->addr.getAddress()<<" "<<memberNode->heartbeat<<"\n";
 
         #ifdef DEBUGLOG
             sprintf(s, "Trying to join...");
@@ -231,27 +231,37 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 */
 	 MessageHdr* msg = (MessageHdr *) data;
 	 if(msg->msgType == JOINREQ) {
+
+	    //GET THE MESSAGE
 	    Address* sendAddress = new Address();
 	    long heartbeat;
 
-	    memcpy(sendAddress, (char *)(msg+1), sizeof(Address));
-	    memcpy(&heartbeat, (char *)(msg+1) + sizeof(Address), sizeof(long));
+	    memcpy(sendAddress, (char *)(msg+1), sizeof(sendAddress));
+	    memcpy(&heartbeat, (char *)(msg+1) + sizeof(sendAddress), sizeof(long));
 	    //cout<<addr.getAddress()<<" "<<value<<"\n";
 
         #ifdef DEBUGLOG
             string ss = sendAddress->getAddress();
             log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", ss.c_str(), heartbeat);
         #endif
-        addAddressToMemberList(sendAddress);
+
+        //PERFORM JOINREQ OPERATIONS
+        addAddressToMemberList(sendAddress, heartbeat);
+
+        //SEND RESPONSE
+        sendMessage(sendAddress, JOINREP);
+
+        //FREE ANY MEMORY USED
         free(sendAddress);
 	 }
 }
 
-void MP1Node::addAddressToMemberList(Address* address) {
+void MP1Node::addAddressToMemberList(Address* address, long heartbeat) {
     int id = getIdFromAddress(address);
     short port = getPortFromAddress(address);
+    long timestamp = par->getcurrtime();
     #ifdef DEBUGLOG
-          log->LOG(&memberNode->addr, "id and port of Address: %d, %d", id, port);
+        log->LOG(&memberNode->addr, "Adding following to memberlist: %d:%d, %d, %d", id, port, heartbeat, timestamp);
     #endif
 }
 
