@@ -131,13 +131,13 @@ int MP1Node::introduceSelfToGroup(Address *joinaddr) {
         memberNode->inGroup = true;
     }
     else {
-        size_t msgsize = sizeof(MessageHdr) + sizeof(joinaddr->addr) + sizeof(long) + 1;
+        size_t msgsize = sizeof(MessageHdr) + sizeof(joinaddr->addr) + sizeof(long);
         msg = (MessageHdr *) malloc(msgsize * sizeof(char));
 
         // create JOINREQ message: format of data is {struct Address myaddr}
         msg->msgType = JOINREQ;
         memcpy((char *)(msg+1), &memberNode->addr.addr, sizeof(memberNode->addr.addr));
-        memcpy((char *)(msg+1) + 1 + sizeof(memberNode->addr.addr), &memberNode->heartbeat, sizeof(long));
+        memcpy((char *)(msg+1) + sizeof(memberNode->addr.addr), &memberNode->heartbeat, sizeof(long));
         //cout<<memberNode->addr.getAddress()<<" "<<memberNode->heartbeat<<"\n";
 
 #ifdef DEBUGLOG
@@ -221,13 +221,14 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 */
 	 MessageHdr* msg = (MessageHdr *) data;
 	 if(msg->msgType == JOINREQ) {
-	    Address addr;
-	    long value;
-	    memcpy(&addr.addr, (char *)(msg+1), sizeof(addr.addr));
-	    memcpy(&value, (char *)(msg+1) + 1 + sizeof(addr.addr), sizeof(long));
+	    Address sendAddress;
+	    long heartbeat;
+
+	    memcpy(&sendAddress.addr, (char *)(msg+1), sizeof(sendAddress.addr));
+	    memcpy(&heartbeat, (char *)(msg+1) + sizeof(sendAddress.addr), sizeof(long));
 	    //cout<<addr.getAddress()<<" "<<value<<"\n";
         #ifdef DEBUGLOG
-              log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", addr.getAddress().c_str(), value);
+              log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", sendAddress.getAddress().c_str(), heartbeat);
         #endif
 	 }
 }
