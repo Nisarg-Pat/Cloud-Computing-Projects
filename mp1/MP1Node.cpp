@@ -276,7 +276,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
             string ss = sendAddress->getAddress();
             log->LOG(&memberNode->addr, "Received JOINREQ from %s having heartbeats = %d", ss.c_str(), heartbeat);
         #endif
-        //log->logNodeAdd(&memberNode->addr, sendAddress);
+        log->logNodeAdd(&memberNode->addr, sendAddress);
 
         //PERFORM JOINREQ OPERATIONS
         addAddressToMemberList(sendAddress, heartbeat);
@@ -339,6 +339,8 @@ bool MP1Node::addEntryToMemberList(MemberListEntry entry) {
     #ifdef DEBUGLOG
         log->LOG(&memberNode->addr, "Adding following to memberlist: %d:%d, %d, %d", entry.getid(), entry.getport(), entry.getheartbeat(), entry.gettimestamp());
     #endif
+    Address* address = getAddressFromIdPort(entry.getid(),entry.getport());
+    log->logNodeAdd(&memberNode->addr, address);
     memberNode->memberList.push_back(entry);
     return true;
 }
@@ -407,6 +409,8 @@ void MP1Node::nodeLoopOps() {
                 memberNode->memberList[i].getid(), memberNode->memberList[i].getport(),
                 memberNode->memberList[i].getheartbeat(), memberNode->memberList[i].gettimestamp());
             #endif
+            Address* address = getAddressFromIdPort(memberNode->memberList[i].getid(),memberNode->memberList[i].getport());
+            log->logNodeRemove(&memberNode->addr, address);
             memberNode->memberList.erase(memberNode->memberList.begin() + i);
         }
     }
