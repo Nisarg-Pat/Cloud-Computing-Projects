@@ -281,6 +281,15 @@ bool MP1Node::checkMembership(int id, short port) {
     return false;
 }
 
+MemberListEntry* MP1Node::getMembership(int id, short port) {
+    for(int i=0; i< memberNode->memberList.size(); i++) {
+        if( memberNode->memberList[i].id == id && memberNode->memberList[i].port == port) {
+            return &memberNode->memberList[i];
+        }
+    }
+    return nullptr;
+}
+
 void MP1Node::printMembership() {
     cout<<"Membership of "<<memberNode->addr.getAddress()<<"\n";
     for(int i=0; i< memberNode->memberList.size(); i++) {
