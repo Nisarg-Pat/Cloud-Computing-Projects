@@ -72,6 +72,7 @@ public:
 	void sendMessage(Address* receiveAddr, MsgTypes msgType);
 	bool recvCallBack(void *env, char *data, int size);
 	bool addAddressToMemberList(Address *address, long heartbeat);
+	bool addEntryToMemberList(MemberListEntry entry);
 	bool checkMembership(int id, short port);
 	MemberListEntry* getMembership(int id, short port);
 	void printMembership();

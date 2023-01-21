@@ -216,7 +216,6 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         // send JOINREQ message to introducer member
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
 
-        free(msg);
     } else if (msgType == JOINREP) {
         size_t memberListSize = memberNode->memberList.size();
         size_t msgsize = sizeof(MessageHdr) + sizeof(Address) + sizeof(size_t) + (memberListSize * sizeof(MemberListEntry));
@@ -225,7 +224,9 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         msg->msgType = JOINREP;
         memcpy((char *)(msg+1), &memberNode->addr, sizeof(Address));
         memcpy((char *)(msg+1) + sizeof(Address), &memberListSize, sizeof(size_t));
-        memcpy((char *)(msg+1) + sizeof(Address) + sizeof(size_t), &memberNode->memberList, (memberListSize * sizeof(MemberListEntry)));
+        for(int i=0;i<memberListSize;i++) {
+            memcpy((char *)(msg+1) + sizeof(Address) + sizeof(size_t) + (i*sizeof(MemberListEntry)), &memberNode->memberList[i], sizeof(MemberListEntry));
+        }
 
         #ifdef DEBUGLOG
             string ss = receiveAddr->getAddress();
@@ -233,9 +234,8 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         #endif
 
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
-
-        free(msg);
     }
+    free(msg);
 }
 
 /**
@@ -275,6 +275,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 } else if (msg -> msgType == JOINREP) {
 	    Address* sendAddress = new Address();
 	    size_t memberListSize;
+	    MemberListEntry entry;
 
 	    memcpy(sendAddress, (char *)(msg+1), sizeof(Address));
         memcpy(&memberListSize, (char *)(msg+1) + sizeof(Address), sizeof(size_t));
@@ -283,6 +284,13 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
             string ss = sendAddress->getAddress();
             log->LOG(&memberNode->addr, "Received JOINREP from %s having size = %d, memberListSize = %d", ss.c_str(), size, memberListSize);
         #endif
+
+        for(int i=0;i<memberListSize;i++) {
+            memcpy(&entry, (char *)(msg+1) + sizeof(Address) + sizeof(size_t) + (i*sizeof(MemberListEntry)), sizeof(MemberListEntry));
+            addEntryToMemberList(entry);
+        }
+        printMembership();
+        free(sendAddress);
 	 }
 }
 
@@ -290,14 +298,18 @@ bool MP1Node::addAddressToMemberList(Address* address, long heartbeat) {
     int id = getIdFromAddress(address);
     short port = getPortFromAddress(address);
     long timestamp = par->getcurrtime();
-    if(checkMembership(id, port)) {
+    MemberListEntry member(id, port, heartbeat, timestamp);
+    return addEntryToMemberList(member);
+}
+
+bool MP1Node::addEntryToMemberList(MemberListEntry entry) {
+    if(checkMembership(entry.getid(),entry.getport())) {
         return false;
     }
     #ifdef DEBUGLOG
-        log->LOG(&memberNode->addr, "Adding following to memberlist: %d:%d, %d, %d", id, port, heartbeat, timestamp);
+        log->LOG(&memberNode->addr, "Adding following to memberlist: %d:%d, %d, %d", entry.getid(), entry.getport(), entry.getheartbeat(), entry.gettimestamp());
     #endif
-    MemberListEntry member(id, port, heartbeat, timestamp);
-    memberNode->memberList.push_back(member);
+    memberNode->memberList.push_back(entry);
     return true;
 }
 
