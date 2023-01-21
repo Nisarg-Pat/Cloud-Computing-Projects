@@ -199,13 +199,13 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
     #endif
 
     if (msgType == JOINREQ) {
-        size_t msgsize = sizeof(MessageHdr) + sizeof(memberNode->addr) + sizeof(long);
+        size_t msgsize = sizeof(MessageHdr) + sizeof(Address) + sizeof(long);
         msg = (MessageHdr *) malloc(msgsize * sizeof(char));
 
         // create JOINREQ message: format of data is {struct Address myaddr}
         msg->msgType = JOINREQ;
-        memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
-        memcpy((char *)(msg+1) + sizeof(memberNode->addr), &memberNode->heartbeat, sizeof(long));
+        memcpy((char *)(msg+1), &memberNode->addr, sizeof(Address));
+        memcpy((char *)(msg+1) + sizeof(Address), &memberNode->heartbeat, sizeof(long));
         //cout<<memberNode->addr.getAddress()<<" "<<memberNode->heartbeat<<"\n";
 
         #ifdef DEBUGLOG
@@ -219,17 +219,17 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         free(msg);
     } else if (msgType == JOINREP) {
         size_t memberListSize = memberNode->memberList.size();
-        size_t msgsize = sizeof(MessageHdr) + sizeof(memberNode->addr) + sizeof(size_t) + sizeof(memberNode->memberList);
+        size_t msgsize = sizeof(MessageHdr) + sizeof(Address) + sizeof(size_t) + (memberListSize * sizeof(MemberListEntry));
         msg = (MessageHdr *) malloc(msgsize * sizeof(char));
 
         msg->msgType = JOINREP;
-        memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
-        memcpy((char *)(msg+1) + sizeof(memberNode->addr), &memberListSize, sizeof(size_t));
-        memcpy((char *)(msg+1) + sizeof(memberNode->addr) + sizeof(size_t), &memberNode->memberList, sizeof(memberNode->memberList));
+        memcpy((char *)(msg+1), &memberNode->addr, sizeof(Address));
+        memcpy((char *)(msg+1) + sizeof(Address), &memberListSize, sizeof(size_t));
+        memcpy((char *)(msg+1) + sizeof(Address) + sizeof(size_t), &memberNode->memberList, (memberListSize * sizeof(MemberListEntry)));
 
         #ifdef DEBUGLOG
             string ss = receiveAddr->getAddress();
-            log->LOG(&memberNode->addr, "Sending response to: %s", ss.c_str());
+            log->LOG(&memberNode->addr, "Sending response to: %s %d", ss.c_str(), memberListSize);
         #endif
 
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
@@ -272,6 +272,17 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 
         //FREE ANY MEMORY USED
         free(sendAddress);
+	 } else if (msg -> msgType == JOINREP) {
+	    Address* sendAddress = new Address();
+	    size_t memberListSize;
+
+	    memcpy(sendAddress, (char *)(msg+1), sizeof(Address));
+        memcpy(&memberListSize, (char *)(msg+1) + sizeof(Address), sizeof(size_t));
+
+        #ifdef DEBUGLOG
+            string ss = sendAddress->getAddress();
+            log->LOG(&memberNode->addr, "Received JOINREP from %s having size = %d, memberListSize = %d", ss.c_str(), size, memberListSize);
+        #endif
 	 }
 }
 
