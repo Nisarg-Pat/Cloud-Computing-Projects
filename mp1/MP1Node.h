@@ -75,7 +75,7 @@ public:
 	bool addEntryToMemberList(MemberListEntry entry);
 	bool checkMembership(int id, short port);
 	MemberListEntry* getMembership(int id, short port);
-	void printMembership();
+	string printMembership();
 	void nodeLoopOps();
 	int isNullAddress(Address *addr);
 	Address getJoinAddress();

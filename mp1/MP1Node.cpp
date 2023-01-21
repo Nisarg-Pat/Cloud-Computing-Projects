@@ -230,7 +230,7 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
 
         #ifdef DEBUGLOG
             string ss = receiveAddr->getAddress();
-            log->LOG(&memberNode->addr, "Sending response to: %s %d", ss.c_str(), memberListSize);
+            log->LOG(&memberNode->addr, "Sending JOINREP to: %s. MemberList Size Attached = %d", ss.c_str(), memberListSize);
         #endif
 
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
@@ -265,7 +265,6 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 
         //PERFORM JOINREQ OPERATIONS
         addAddressToMemberList(sendAddress, heartbeat);
-        printMembership();
 
         //SEND RESPONSE
         sendMessage(sendAddress, JOINREP);
@@ -280,16 +279,15 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	    memcpy(sendAddress, (char *)(msg+1), sizeof(Address));
         memcpy(&memberListSize, (char *)(msg+1) + sizeof(Address), sizeof(size_t));
 
-        #ifdef DEBUGLOG
-            string ss = sendAddress->getAddress();
-            log->LOG(&memberNode->addr, "Received JOINREP from %s having size = %d, memberListSize = %d", ss.c_str(), size, memberListSize);
-        #endif
-
         for(int i=0;i<memberListSize;i++) {
             memcpy(&entry, (char *)(msg+1) + sizeof(Address) + sizeof(size_t) + (i*sizeof(MemberListEntry)), sizeof(MemberListEntry));
             addEntryToMemberList(entry);
         }
-        printMembership();
+
+        #ifdef DEBUGLOG
+            string ss = sendAddress->getAddress();
+            log->LOG(&memberNode->addr, "Received JOINREP from %s having size = %d, memberListSize = %d", ss.c_str(), size, memberListSize);
+        #endif
         free(sendAddress);
 	 }
 }
@@ -331,11 +329,13 @@ MemberListEntry* MP1Node::getMembership(int id, short port) {
     return nullptr;
 }
 
-void MP1Node::printMembership() {
-    cout<<"Membership of "<<memberNode->addr.getAddress()<<"\n";
+string MP1Node::printMembership() {
+    string out = "Membership of "+memberNode->addr.getAddress()+" Size = "+to_string(memberNode->memberList.size())+"\n";
     for(int i=0; i< memberNode->memberList.size(); i++) {
-        cout<<memberNode->memberList[i].id<<" "<<memberNode->memberList[i].port<<" "<<memberNode->memberList[i].heartbeat<<" "<<memberNode->memberList[i].timestamp<<"\n";
+        out = out+to_string(memberNode->memberList[i].id)+" "+to_string(memberNode->memberList[i].port)
+        +" "+to_string(memberNode->memberList[i].heartbeat)+" "+to_string(memberNode->memberList[i].timestamp)+"\n";
     }
+    return out;
 }
 
 /**
