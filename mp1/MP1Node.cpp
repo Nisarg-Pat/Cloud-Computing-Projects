@@ -217,20 +217,20 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
 
     } else if (msgType == JOINREP) {
-        size_t memberListSize = memberNode->memberList.size();
-        size_t msgsize = sizeof(MessageHdr) + sizeof(Address) + sizeof(size_t) + (memberListSize * sizeof(MemberListEntry));
+        int memberListSize = memberNode->memberList.size();
+        size_t msgsize = sizeof(MessageHdr) + sizeof(Address) + sizeof(int) + (memberListSize * sizeof(MemberListEntry));
         msg = (MessageHdr *) malloc(msgsize * sizeof(char));
 
         msg->msgType = JOINREP;
         memcpy((char *)(msg+1), &memberNode->addr, sizeof(Address));
-        memcpy((char *)(msg+1) + sizeof(Address), &memberListSize, sizeof(size_t));
+        memcpy((char *)(msg+1) + sizeof(Address), &memberListSize, sizeof(int));
         for(int i=0;i<memberListSize;i++) {
-            memcpy((char *)(msg+1) + sizeof(Address) + sizeof(size_t) + (i*sizeof(MemberListEntry)), &memberNode->memberList[i], sizeof(MemberListEntry));
+            memcpy((char *)(msg+1) + sizeof(Address) + sizeof(int) + (i*sizeof(MemberListEntry)), &memberNode->memberList[i], sizeof(MemberListEntry));
         }
 
         #ifdef DEBUGLOG
             string ss = receiveAddr->getAddress();
-            log->LOG(&memberNode->addr, "Sending JOINREP to: %s. MemberList Size Attached = %d", ss.c_str(), memberListSize);
+            log->LOG(&memberNode->addr, "Sending JOINREP to: %s. memberlist size = %d", ss.c_str(), memberListSize);
         #endif
 
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
@@ -273,21 +273,22 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
         free(sendAddress);
 	 } else if (msg -> msgType == JOINREP) {
 	    Address* sendAddress = new Address();
-	    size_t memberListSize;
+	    int memberListSize;
 	    MemberListEntry entry;
 
 	    memcpy(sendAddress, (char *)(msg+1), sizeof(Address));
-        memcpy(&memberListSize, (char *)(msg+1) + sizeof(Address), sizeof(size_t));
-
-        for(int i=0;i<memberListSize;i++) {
-            memcpy(&entry, (char *)(msg+1) + sizeof(Address) + sizeof(size_t) + (i*sizeof(MemberListEntry)), sizeof(MemberListEntry));
-            addEntryToMemberList(entry);
-        }
+        memcpy(&memberListSize, (char *)(msg+1) + sizeof(Address), sizeof(int));
 
         #ifdef DEBUGLOG
             string ss = sendAddress->getAddress();
-            log->LOG(&memberNode->addr, "Received JOINREP from %s having size = %d, memberListSize = %d", ss.c_str(), size, memberListSize);
+            log->LOG(&memberNode->addr, "Received JOINREP from %s having memberlist size = %d", ss.c_str(), memberListSize);
         #endif
+
+        for(int i=0;i<memberListSize;i++) {
+            memcpy(&entry, (char *)(msg+1) + sizeof(Address) + sizeof(int) + (i*sizeof(MemberListEntry)), sizeof(MemberListEntry));
+            addEntryToMemberList(entry);
+        }
+
         free(sendAddress);
 	 }
 }
