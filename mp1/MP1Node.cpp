@@ -247,6 +247,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 
         //PERFORM JOINREQ OPERATIONS
         addAddressToMemberList(sendAddress, heartbeat);
+        printMembership();
 
         //SEND RESPONSE
         sendMessage(sendAddress, JOINREP);
@@ -256,13 +257,35 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 }
 }
 
-void MP1Node::addAddressToMemberList(Address* address, long heartbeat) {
+bool MP1Node::addAddressToMemberList(Address* address, long heartbeat) {
     int id = getIdFromAddress(address);
     short port = getPortFromAddress(address);
     long timestamp = par->getcurrtime();
+    if(checkMembership(id, port)) {
+        return false;
+    }
     #ifdef DEBUGLOG
         log->LOG(&memberNode->addr, "Adding following to memberlist: %d:%d, %d, %d", id, port, heartbeat, timestamp);
     #endif
+    MemberListEntry member(id, port, heartbeat, timestamp);
+    memberNode->memberList.push_back(member);
+    return true;
+}
+
+bool MP1Node::checkMembership(int id, short port) {
+    for(int i=0; i< memberNode->memberList.size(); i++) {
+        if( memberNode->memberList[i].id == id && memberNode->memberList[i].port == port) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void MP1Node::printMembership() {
+    cout<<"Membership of "<<memberNode->addr.getAddress()<<"\n";
+    for(int i=0; i< memberNode->memberList.size(); i++) {
+        cout<<memberNode->memberList[i].id<<" "<<memberNode->memberList[i].port<<" "<<memberNode->memberList[i].heartbeat<<" "<<memberNode->memberList[i].timestamp<<"\n";
+    }
 }
 
 /**

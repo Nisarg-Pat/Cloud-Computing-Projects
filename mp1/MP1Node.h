@@ -71,7 +71,9 @@ public:
 	void checkMessages();
 	void sendMessage(Address* receiveAddr, MsgTypes msgType);
 	bool recvCallBack(void *env, char *data, int size);
-	void addAddressToMemberList(Address *address, long heartbeat);
+	bool addAddressToMemberList(Address *address, long heartbeat);
+	bool checkMembership(int id, short port);
+	void printMembership();
 	void nodeLoopOps();
 	int isNullAddress(Address *addr);
 	Address getJoinAddress();
