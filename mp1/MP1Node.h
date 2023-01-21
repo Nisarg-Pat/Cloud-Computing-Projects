@@ -31,7 +31,7 @@
 enum MsgTypes{
     JOINREQ,
     JOINREP,
-    DUMMYLASTMSGTYPE
+    PING
 };
 
 /**
@@ -73,6 +73,7 @@ public:
 	bool recvCallBack(void *env, char *data, int size);
 	bool addAddressToMemberList(Address *address, long heartbeat);
 	bool addEntryToMemberList(MemberListEntry entry);
+	void updateMembership(MemberListEntry entry);
 	bool checkMembership(int id, short port);
 	MemberListEntry* getMembership(int id, short port);
 	string printMembership();
@@ -83,6 +84,7 @@ public:
 	void printAddress(Address *addr);
 	int getIdFromAddress(Address *address);
 	short getPortFromAddress(Address *address);
+	Address* getAddressFromIdPort(int id, short port);
 	virtual ~MP1Node();
 };
 
