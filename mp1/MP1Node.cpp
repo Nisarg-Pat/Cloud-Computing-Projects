@@ -217,6 +217,24 @@ void MP1Node::sendMessage(Address* receiveAddr, MsgTypes msgType) {
         emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
 
         free(msg);
+    } else if (msgType == JOINREP) {
+        size_t memberListSize = memberNode->memberList.size();
+        size_t msgsize = sizeof(MessageHdr) + sizeof(memberNode->addr) + sizeof(size_t) + sizeof(memberNode->memberList);
+        msg = (MessageHdr *) malloc(msgsize * sizeof(char));
+
+        msg->msgType = JOINREP;
+        memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
+        memcpy((char *)(msg+1) + sizeof(memberNode->addr), &memberListSize, sizeof(size_t));
+        memcpy((char *)(msg+1) + sizeof(memberNode->addr) + sizeof(size_t), &memberNode->memberList, sizeof(memberNode->memberList));
+
+        #ifdef DEBUGLOG
+            string ss = receiveAddr->getAddress();
+            log->LOG(&memberNode->addr, "Sending response to: %s", ss.c_str());
+        #endif
+
+        emulNet->ENsend(&memberNode->addr, receiveAddr, (char *)msg, msgsize);
+
+        free(msg);
     }
 }
 
