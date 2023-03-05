@@ -31,7 +31,7 @@
 enum MsgTypes{
     JOINREQ,
     JOINREP,
-    DUMMYLASTMSGTYPE
+    PING
 };
 
 /**
@@ -69,12 +69,22 @@ public:
 	int finishUpThisNode();
 	void nodeLoop();
 	void checkMessages();
+	void sendMessage(Address* receiveAddr, MsgTypes msgType);
 	bool recvCallBack(void *env, char *data, int size);
+	bool addAddressToMemberList(Address *address, long heartbeat);
+	bool addEntryToMemberList(MemberListEntry entry);
+	void updateMembership(MemberListEntry entry);
+	bool checkMembership(int id, short port);
+	MemberListEntry* getMembership(int id, short port);
+	string printMembership();
 	void nodeLoopOps();
 	int isNullAddress(Address *addr);
 	Address getJoinAddress();
 	void initMemberListTable(Member *memberNode);
 	void printAddress(Address *addr);
+	int getIdFromAddress(Address *address);
+	short getPortFromAddress(Address *address);
+	Address* getAddressFromIdPort(int id, short port);
 	virtual ~MP1Node();
 };
 
