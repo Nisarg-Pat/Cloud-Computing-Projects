@@ -24,3 +24,6 @@
 /mp2/Node.o
 /mp2/Params.o
 /mp2/Trace.o
+/mp2/dbg.log
+/mp2/msgcount.log
+/mp2/stats.log
