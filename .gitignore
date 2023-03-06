@@ -11,3 +11,16 @@
 /mp1/stats.log
 
 /mp2/.idea/
+/mp2/Application
+/mp2/Application.o
+/mp2/EmulNet.o
+/mp2/Entry.o
+/mp2/HashTable.o
+/mp2/Log.o
+/mp2/Member.o
+/mp2/MP1Node.o
+/mp2/MP2Node.o
+/mp2/Message.o
+/mp2/Node.o
+/mp2/Params.o
+/mp2/Trace.o
