@@ -45,12 +45,65 @@ void MP2Node::updateRing() {
 	 *  Step 1. Get the current membership list from Membership Protocol / MP1
 	 */
 	curMemList = getMembershipList();
+//	#ifdef DEBUGLOG
+//        for(int i=0;i<curMemList.size(); i++) {
+//            string ss = curMemList[i].getAddress()->getAddress();
+//            log->LOG(&memberNode->addr, "Ring Element: %s :::: %d", ss.c_str(), curMemList[i].getHashCode());
+//        }
+//    #endif
 
 	/*
 	 * Step 2: Construct the ring
 	 */
 	// Sort the list based on the hashCode
 	sort(curMemList.begin(), curMemList.end());
+
+    if(this->ring.size()!=curMemList.size()) {
+        change = true;
+    } else {
+        for(int i=0;i<this->ring.size(); i++) {
+            if(this->ring[i].getHashCode() != curMemList[i].getHashCode()) {
+                change = true;
+                break;
+            }
+        }
+    }
+
+//    #ifdef DEBUGLOG
+//        for(int i=0;i<curMemList.size(); i++) {
+//            string ss = curMemList[i].getAddress()->getAddress();
+//            log->LOG(&memberNode->addr, "Ring Element: %s :::: %d", ss.c_str(), curMemList[i].getHashCode());
+//        }
+//    #endif
+
+    if(change) {
+        this->ring = curMemList;
+        int myPos = -1;
+        for(int i=0;i<this->ring.size(); i++) {
+            if(this->ring[i].getHashCode() == hashFunction(memberNode->addr.addr)) {
+                myPos = i;
+            }
+        }
+
+        this->hasMyReplicas.clear();
+        this->hasMyReplicas.emplace_back(this->ring[(myPos+1)%this->ring.size()]);
+        this->hasMyReplicas.emplace_back(this->ring[(myPos+2)%this->ring.size()]);
+        this->haveReplicasOf.clear();
+        this->haveReplicasOf.emplace_back(this->ring[(myPos+this->ring.size()-2)%this->ring.size()]);
+        this->haveReplicasOf.emplace_back(this->ring[(myPos+this->ring.size()-1)%this->ring.size()]);
+
+        #ifdef DEBUGLOG
+            log->LOG(&memberNode->addr, "Ring Changed!!! MyPos in Ring: %d", myPos);
+            log->LOG(&memberNode->addr, "hasMyReplicas :::: %d", this->hasMyReplicas[0].getHashCode());
+            log->LOG(&memberNode->addr, "hasMyReplicas :::: %d", this->hasMyReplicas[1].getHashCode());
+            log->LOG(&memberNode->addr, "haveReplicasOf :::: %d", this->haveReplicasOf[0].getHashCode());
+            log->LOG(&memberNode->addr, "haveReplicasOf :::: %d", this->haveReplicasOf[1].getHashCode());
+            for(int i=0;i<this->ring.size(); i++) {
+                string ss = this->ring[i].getAddress()->getAddress();
+                log->LOG(&memberNode->addr, "Ring Element: %s :::: %d", ss.c_str(), this->ring[i].getHashCode());
+            }
+        #endif
+    }
 
 
 	/*
