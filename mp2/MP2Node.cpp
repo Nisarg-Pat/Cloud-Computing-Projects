@@ -312,7 +312,7 @@ void MP2Node::checkMessages() {
 
 		if(message.type == CREATE) {
 		    #ifdef DEBUGLOG
-                log->LOG(&memberNode->addr, "Received message %s", message.c_str());
+                log->LOG(&memberNode->addr, "Received message %s", messageString.c_str());
             #endif
 		}
 
