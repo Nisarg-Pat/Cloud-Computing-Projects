@@ -357,18 +357,34 @@ void MP2Node::checkMessages() {
 		string messageString(data, data + size);
 		Message message(messageString);
 
-		 #ifdef DEBUGLOG
-            log->LOG(&memberNode->addr, "Received message %s", messageString.c_str());
-        #endif
+//        #ifdef DEBUGLOG
+//            log->LOG(&memberNode->addr, "Received message %s", messageString.c_str());
+//        #endif
 
 		if(message.type == CREATE) {
-            createKeyValue(message.key, message.value, message.replica);
+            bool val = createKeyValue(message.key, message.value, message.replica);
+            Message message(1, memberNode->addr, REPLY, val);
+            emulNet->ENsend(&memberNode->addr, &message.fromAddr, message.toString());
 		} else if(message.type == READ) {
-		    readKey(message.key);
+		    string val = readKey(message.key);
+		    Message message(1, memberNode->addr, val);
+            emulNet->ENsend(&memberNode->addr, &message.fromAddr, message.toString());
 		} else if(message.type == UPDATE) {
-		    updateKeyValue(message.key, message.value, message.replica);
+		    bool val = updateKeyValue(message.key, message.value, message.replica);
+		    Message message(1, memberNode->addr, REPLY, val);
+            emulNet->ENsend(&memberNode->addr, &message.fromAddr, message.toString());
 		} else if(message.type == DELETE) {
-		    deletekey(message.key);
+		    bool val = deletekey(message.key);
+		    Message message(1, memberNode->addr, REPLY, val);
+            emulNet->ENsend(&memberNode->addr, &message.fromAddr, message.toString());
+		} else if(message.type == REPLY) {
+            #ifdef DEBUGLOG
+                log->LOG(&memberNode->addr, "REPLY message %s", messageString.c_str());
+            #endif
+		} else if(message.type == READREPLY) {
+            #ifdef DEBUGLOG
+                log->LOG(&memberNode->addr, "READREPLY message %s", messageString.c_str());
+            #endif
 		}
 
 		/*
