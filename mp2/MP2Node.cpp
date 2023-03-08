@@ -110,7 +110,7 @@ void MP2Node::updateRing() {
 	 * Step 3: Run the stabilization protocol IF REQUIRED
 	 */
 	// Run stabilization protocol if the hash table size is greater than zero and if there has been a changed in the ring
-	if(!ht.isEmpty() && change) {
+	if(!ht->isEmpty() && change) {
        stabilizationProtocol();
 	}
 }
@@ -167,6 +167,11 @@ void MP2Node::clientCreate(string key, string value) {
 	/*
 	 * Implement this
 	 */
+	 vector<Node> replicas = findNodes(key);
+	 Message message(1, memberNode->addr, CREATE, key, value);
+	 for(int i=0;i<replicas.size();i++) {
+	    emulNet->ENsend(&memberNode->addr, replicas[i].getAddress(), message.toString());
+	 }
 }
 
 /**
@@ -302,7 +307,14 @@ void MP2Node::checkMessages() {
 		size = memberNode->mp2q.front().size;
 		memberNode->mp2q.pop();
 
-		string message(data, data + size);
+		string messageString(data, data + size);
+		Message message(messageString);
+
+		if(message.type == CREATE) {
+		    #ifdef DEBUGLOG
+                log->LOG(&memberNode->addr, "Received message %s", message.c_str());
+            #endif
+		}
 
 		/*
 		 * Handle the message types here
