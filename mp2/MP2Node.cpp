@@ -187,6 +187,11 @@ void MP2Node::clientRead(string key){
 	/*
 	 * Implement this
 	 */
+	 vector<Node> replicas = findNodes(key);
+     Message message(1, memberNode->addr, READ, key);
+     for(int i=0;i<replicas.size();i++) {
+        emulNet->ENsend(&memberNode->addr, replicas[i].getAddress(), message.toString());
+     }
 }
 
 /**
@@ -202,6 +207,11 @@ void MP2Node::clientUpdate(string key, string value){
 	/*
 	 * Implement this
 	 */
+	 vector<Node> replicas = findNodes(key);
+     Message message(1, memberNode->addr, UPDATE, key, value);
+     for(int i=0;i<replicas.size();i++) {
+        emulNet->ENsend(&memberNode->addr, replicas[i].getAddress(), message.toString());
+     }
 }
 
 /**
@@ -217,6 +227,11 @@ void MP2Node::clientDelete(string key){
 	/*
 	 * Implement this
 	 */
+    vector<Node> replicas = findNodes(key);
+    Message message(1, memberNode->addr, DELETE, key);
+    for(int i=0;i<replicas.size();i++) {
+        emulNet->ENsend(&memberNode->addr, replicas[i].getAddress(), message.toString());
+    }
 }
 
 /**
@@ -232,6 +247,14 @@ bool MP2Node::createKeyValue(string key, string value, ReplicaType replica) {
 	 * Implement this
 	 */
 	// Insert key, value, replicaType into the hash table
+	Entry entry(value, 0, replica);
+	bool added = ht->create(key, entry.convertToString());
+	if(added) {
+        log->logCreateSuccess(&memberNode->addr, false, 1, key, value);
+    } else {
+        log->logCreateFail(&memberNode->addr, false, 1, key, value);
+    }
+    return added;
 }
 
 /**
@@ -247,6 +270,15 @@ string MP2Node::readKey(string key) {
 	 * Implement this
 	 */
 	// Read key from local hash table and return value
+	string val = ht->read(key);
+    if(val != "") {
+        Entry entry(val);
+        log->logReadSuccess(&memberNode->addr, false, 1, key, entry.value);
+        return entry.value;
+    } else {
+        log->logReadFail(&memberNode->addr, false, 1, key);
+        return val;
+    }
 }
 
 /**
@@ -262,6 +294,14 @@ bool MP2Node::updateKeyValue(string key, string value, ReplicaType replica) {
 	 * Implement this
 	 */
 	// Update key in local hash table and return true or false
+    Entry entry(value, 0, replica);
+    bool updated = ht->update(key, entry.convertToString());
+    if(updated) {
+        log->logUpdateSuccess(&memberNode->addr, false, 1, key, value);
+    } else {
+        log->logUpdateFail(&memberNode->addr, false, 1, key, value);
+    }
+    return updated;
 }
 
 /**
@@ -277,6 +317,13 @@ bool MP2Node::deletekey(string key) {
 	 * Implement this
 	 */
 	// Delete the key from the local hash table
+    bool deleted = ht->deleteKey(key);
+    if(deleted) {
+        log->logDeleteSuccess(&memberNode->addr, false, 1, key);
+    } else {
+        log->logDeleteFail(&memberNode->addr, false, 1, key);
+    }
+    return deleted;
 }
 
 /**
@@ -310,10 +357,18 @@ void MP2Node::checkMessages() {
 		string messageString(data, data + size);
 		Message message(messageString);
 
+		 #ifdef DEBUGLOG
+            log->LOG(&memberNode->addr, "Received message %s", messageString.c_str());
+        #endif
+
 		if(message.type == CREATE) {
-		    #ifdef DEBUGLOG
-                log->LOG(&memberNode->addr, "Received message %s", messageString.c_str());
-            #endif
+            createKeyValue(message.key, message.value, message.replica);
+		} else if(message.type == READ) {
+		    readKey(message.key);
+		} else if(message.type == UPDATE) {
+		    updateKeyValue(message.key, message.value, message.replica);
+		} else if(message.type == DELETE) {
+		    deletekey(message.key);
 		}
 
 		/*
