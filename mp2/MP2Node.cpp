@@ -23,6 +23,11 @@ MP2Node::MP2Node(Member *memberNode, Params *par, EmulNet * emulNet, Log * log, 
 MP2Node::~MP2Node() {
 	delete ht;
 	delete memberNode;
+//	map<int, Transaction*>::iterator it = transactionTable.begin();
+//    while(it != transactionTable.end()) {
+//        delete it->second;
+//        it++;
+//    }
 }
 
 /**
@@ -168,7 +173,10 @@ void MP2Node::clientCreate(string key, string value) {
 	 * Implement this
 	 */
 	 vector<Node> replicas = findNodes(key);
-	 Message message(1, memberNode->addr, CREATE, key, value);
+	 int transId = transactionTable.size();
+	 Transaction *transaction = new Transaction(transId, CREATE, key, value);
+	 transactionTable.emplace_back(transaction);
+	 Message message(transId, memberNode->addr, CREATE, key, value);
 	 for(int i=0;i<replicas.size();i++) {
 	    emulNet->ENsend(&memberNode->addr, replicas[i].getAddress(), message.toString());
 	 }
@@ -249,11 +257,6 @@ bool MP2Node::createKeyValue(string key, string value, ReplicaType replica) {
 	// Insert key, value, replicaType into the hash table
 	Entry entry(value, 0, replica);
 	bool added = ht->create(key, entry.convertToString());
-	if(added) {
-        log->logCreateSuccess(&memberNode->addr, false, 1, key, value);
-    } else {
-        log->logCreateFail(&memberNode->addr, false, 1, key, value);
-    }
     return added;
 }
 
@@ -361,10 +364,19 @@ void MP2Node::checkMessages() {
 //            log->LOG(&memberNode->addr, "Received message %s", messageString.c_str());
 //        #endif
 
+        /*
+         * Handle the message types here
+         */
+
 		if(message.type == CREATE) {
             bool val = createKeyValue(message.key, message.value, message.replica);
-            Message message(1, memberNode->addr, REPLY, val);
-            emulNet->ENsend(&memberNode->addr, &message.fromAddr, message.toString());
+            if(val) {
+                log->logCreateSuccess(&memberNode->addr, false, message.transID, message.key, message.value);
+            } else {
+                log->logCreateFail(&memberNode->addr, false, message.transID, message.key, message.value);
+            }
+            Message replyMessage(message.transID, memberNode->addr, REPLY, val);
+            emulNet->ENsend(&memberNode->addr, &message.fromAddr, replyMessage.toString());
 		} else if(message.type == READ) {
 		    string val = readKey(message.key);
 		    Message message(1, memberNode->addr, val);
@@ -378,19 +390,20 @@ void MP2Node::checkMessages() {
 		    Message message(1, memberNode->addr, REPLY, val);
             emulNet->ENsend(&memberNode->addr, &message.fromAddr, message.toString());
 		} else if(message.type == REPLY) {
-            #ifdef DEBUGLOG
+		    #ifdef DEBUGLOG
                 log->LOG(&memberNode->addr, "REPLY message %s", messageString.c_str());
             #endif
+		    if(message.success) {
+		        transactionTable[message.transID]->replyCount++;
+		        if(transactionTable[message.transID]->replyCount == 2) {
+		            log->logCreateSuccess(&memberNode->addr, true, message.transID, transactionTable[message.transID]->key, transactionTable[message.transID]->value);
+		        }
+		    }
 		} else if(message.type == READREPLY) {
             #ifdef DEBUGLOG
                 log->LOG(&memberNode->addr, "READREPLY message %s", messageString.c_str());
             #endif
 		}
-
-		/*
-		 * Handle the message types here
-		 */
-
 	}
 
 	/*

@@ -19,6 +19,23 @@
 #include "Message.h"
 #include "Queue.h"
 
+class Transaction {
+public:
+	int id;
+	int replyCount;
+	MessageType type;
+	string key;
+	string value;
+
+	Transaction(int transId, MessageType msgType, string _key, string _value) {
+	    id = transId;
+	    replyCount = 0;
+	    type = msgType;
+	    key = _key;
+	    value = _value;
+	}
+};
+
 /**
  * CLASS NAME: MP2Node
  *
@@ -39,6 +56,8 @@ private:
 	vector<Node> ring;
 	// Hash Table
 	HashTable * ht;
+	// Transaction Map
+	vector<Transaction*> transactionTable;
 	// Member representing this member
 	Member *memberNode;
 	// Params object
