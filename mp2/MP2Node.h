@@ -99,10 +99,14 @@ public:
 	vector<Node> findNodes(string key);
 
 	// server
-	bool createKeyValue(string key, string value, ReplicaType replica);
-	string readKey(string key);
-	bool updateKeyValue(string key, string value, ReplicaType replica);
-	bool deletekey(string key);
+	bool createKeyValue(string key, string value, ReplicaType replica, int transId);
+	string readKey(string key, int transId);
+	bool updateKeyValue(string key, string value, ReplicaType replica, int transId);
+	bool deletekey(string key, int transId);
+
+	//Helper functions
+	void createTransaction(int transId, MessageType msgType, string _key, string _value);
+	void outputLog(MessageType type, bool isCoordinator, int transID, string key, string value, bool success);
 
 	// stabilization protocol - handle multiple failures
 	void stabilizationProtocol();
