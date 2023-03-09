@@ -19,17 +19,23 @@
 #include "Message.h"
 #include "Queue.h"
 
+#define TIMEOUT 20
+
 class Transaction {
 public:
 	int id;
+	int timestamp;
 	int replyCount;
+	int successCount;
 	MessageType type;
 	string key;
 	string value;
 
-	Transaction(int transId, MessageType msgType, string _key, string _value) {
+	Transaction(int transId, int _timestamp, MessageType msgType, string _key, string _value) {
 	    id = transId;
+	    timestamp = _timestamp;
 	    replyCount = 0;
+	    successCount = 0;
 	    type = msgType;
 	    key = _key;
 	    value = _value;

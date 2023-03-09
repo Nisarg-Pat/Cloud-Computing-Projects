@@ -383,20 +383,43 @@ void MP2Node::checkMessages() {
 		    Message replyMessage(message.transID, memberNode->addr, REPLY, val);
             emulNet->ENsend(&memberNode->addr, &message.fromAddr, replyMessage.toString());
 		} else if(message.type == REPLY) {
-		    #ifdef DEBUGLOG
-                log->LOG(&memberNode->addr, "REPLY message %s", messageString.c_str());
-            #endif
+		    transactionTable[message.transID]->replyCount++;
 		    if(message.success) {
-		        transactionTable[message.transID]->replyCount++;
-		        if(transactionTable[message.transID]->replyCount == 2) {
-		            log->logCreateSuccess(&memberNode->addr, true, message.transID, transactionTable[message.transID]->key, transactionTable[message.transID]->value);
+		        transactionTable[message.transID]->successCount++;
+		        if(transactionTable[message.transID]->successCount == 2) {
+		            outputLog(transactionTable[message.transID]->type, true, message.transID,
+		            transactionTable[message.transID]->key, transactionTable[message.transID]->value, true);
 		        }
 		    }
+		    if(transactionTable[message.transID]->replyCount == 3 && transactionTable[message.transID]->successCount <=1) {
+                outputLog(transactionTable[message.transID]->type, true, message.transID,
+                transactionTable[message.transID]->key, transactionTable[message.transID]->value, false);
+            }
 		} else if(message.type == READREPLY) {
-            #ifdef DEBUGLOG
-                log->LOG(&memberNode->addr, "READREPLY message %s", messageString.c_str());
-            #endif
+		    transactionTable[message.transID]->replyCount++;
+            if(message.value != "") {
+                transactionTable[message.transID]->successCount++;
+                transactionTable[message.transID]->value = message.value;
+                if(transactionTable[message.transID]->successCount == 2) {
+                    outputLog(transactionTable[message.transID]->type, true, message.transID,
+                    transactionTable[message.transID]->key, transactionTable[message.transID]->value, true);
+                }
+            }
+            if(transactionTable[message.transID]->replyCount == 3 && transactionTable[message.transID]->successCount <=1) {
+                outputLog(transactionTable[message.transID]->type, true, message.transID,
+                transactionTable[message.transID]->key, transactionTable[message.transID]->value, false);
+            }
 		}
+		for(int i=0;i<transactionTable.size();i++) {
+		    if(par->getcurrtime() - transactionTable[i]->timestamp >= TIMEOUT && transactionTable[i]->replyCount < 3) {
+                transactionTable[i]->replyCount = 3;
+                if(transactionTable[message.transID]->successCount <=1) {
+                   outputLog(transactionTable[message.transID]->type, true, message.transID,
+                   transactionTable[message.transID]->key, transactionTable[message.transID]->value, false);
+                }
+		    }
+		}
+
 	}
 
 	/*
@@ -476,7 +499,7 @@ void MP2Node::stabilizationProtocol() {
 }
 
 void MP2Node::createTransaction(int transId, MessageType msgType, string key, string value) {
-    Transaction *transaction = new Transaction(transId, msgType, key, value);
+    Transaction *transaction = new Transaction(transId, par->getcurrtime(), msgType, key, value);
     transactionTable.emplace_back(transaction);
 }
 
@@ -489,21 +512,21 @@ void MP2Node::outputLog(MessageType type, bool isCoordinator, int transID, strin
         }
     } else if(type == READ) {
         if(success) {
-            log->logReadSuccess(&memberNode->addr, false, transID, key, value);
+            log->logReadSuccess(&memberNode->addr, isCoordinator, transID, key, value);
         } else {
-            log->logReadFail(&memberNode->addr, false, transID, key);
+            log->logReadFail(&memberNode->addr, isCoordinator, transID, key);
         }
     } else if(type == UPDATE) {
         if(success) {
-            log->logUpdateSuccess(&memberNode->addr, false, transID, key, value);
+            log->logUpdateSuccess(&memberNode->addr, isCoordinator, transID, key, value);
         } else {
-            log->logUpdateFail(&memberNode->addr, false, transID, key, value);
+            log->logUpdateFail(&memberNode->addr, isCoordinator, transID, key, value);
         }
     } else if(type == DELETE) {
         if(success) {
-            log->logDeleteSuccess(&memberNode->addr, false, transID, key);
+            log->logDeleteSuccess(&memberNode->addr, isCoordinator, transID, key);
         } else {
-            log->logDeleteFail(&memberNode->addr, false, transID, key);
+            log->logDeleteFail(&memberNode->addr, isCoordinator, transID, key);
         }
     }
 }
