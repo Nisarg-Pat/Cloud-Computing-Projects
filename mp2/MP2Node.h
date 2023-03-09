@@ -20,6 +20,7 @@
 #include "Queue.h"
 
 #define TIMEOUT 20
+#define REPLICATE -1
 
 class Transaction {
 public:

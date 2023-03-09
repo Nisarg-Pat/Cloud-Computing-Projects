@@ -262,7 +262,9 @@ bool MP2Node::createKeyValue(string key, string value, ReplicaType replica, int 
 	// Insert key, value, replicaType into the hash table
 	Entry entry(value, 0, replica);
 	bool added = ht->create(key, entry.convertToString());
-	outputLog(CREATE, false, transId, key, value, added);
+	if(transId!=REPLICATE) {
+	    outputLog(CREATE, false, transId, key, value, added);
+	}
     return added;
 }
 
@@ -368,8 +370,10 @@ void MP2Node::checkMessages() {
 
 		if(message.type == CREATE) {
             bool val = createKeyValue(message.key, message.value, message.replica, message.transID);
-            Message replyMessage(message.transID, memberNode->addr, REPLY, val);
-            emulNet->ENsend(&memberNode->addr, &message.fromAddr, replyMessage.toString());
+            if(message.transID!=REPLICATE) {
+                Message replyMessage(message.transID, memberNode->addr, REPLY, val);
+                emulNet->ENsend(&memberNode->addr, &message.fromAddr, replyMessage.toString());
+            }
 		} else if(message.type == READ) {
 		    string val = readKey(message.key, message.transID);
 		    Message replyMessage(message.transID, memberNode->addr, val);
@@ -413,9 +417,9 @@ void MP2Node::checkMessages() {
 		for(int i=0;i<transactionTable.size();i++) {
 		    if(par->getcurrtime() - transactionTable[i]->timestamp >= TIMEOUT && transactionTable[i]->replyCount < 3) {
                 transactionTable[i]->replyCount = 3;
-                if(transactionTable[message.transID]->successCount <=1) {
-                   outputLog(transactionTable[message.transID]->type, true, message.transID,
-                   transactionTable[message.transID]->key, transactionTable[message.transID]->value, false);
+                if(transactionTable[i]->successCount <=1) {
+                   outputLog(transactionTable[i]->type, true, transactionTable[i]->id,
+                   transactionTable[i]->key, transactionTable[i]->value, false);
                 }
 		    }
 		}
@@ -493,9 +497,16 @@ int MP2Node::enqueueWrapper(void *env, char *buff, int size) {
  *				Note:- "CORRECT" replicas implies that every key is replicated in its two neighboring nodes in the ring
  */
 void MP2Node::stabilizationProtocol() {
-	/*
-	 * Implement this
-	 */
+    map<string, string>::iterator it;
+    for(it = ht->hashTable.begin(); it != ht->hashTable.end(); it++) {
+        string key = it->first;
+        string value = it->second;
+        vector<Node> replicas = findNodes(key);
+        Message message(REPLICATE, memberNode->addr, CREATE, key, value);
+         for(int i=0;i<replicas.size();i++) {
+            emulNet->ENsend(&memberNode->addr, replicas[i].getAddress(), message.toString());
+         }
+    }
 }
 
 void MP2Node::createTransaction(int transId, MessageType msgType, string key, string value) {
